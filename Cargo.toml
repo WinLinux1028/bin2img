@@ -1,0 +1,7 @@
+[workspace]
+
+members = [
+    "bin_img_conv",
+    "cui_command",
+    "wasm_export",
+]
