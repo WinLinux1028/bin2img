@@ -52,37 +52,38 @@ impl TryFrom<Img> for Bin {
         // png内のデータを読み込む
         let decoder = png::Decoder::new(input.as_slice());
         let mut reader = decoder.read_info()?;
-        let mut input = vec![0; reader.output_buffer_size()];
-        reader.next_frame(&mut input)?;
+        let mut input_ = vec![0; reader.output_buffer_size()];
+        reader.next_frame(&mut input_)?;
 
         let bytes_per_pixel = reader.info().bytes_per_pixel();
         drop(reader);
+        drop(input);
 
         // データの長さをチェックする
-        if input.len() <= bytes_per_pixel + 16 {
+        if input_.len() <= bytes_per_pixel + 16 {
             Err("Too short data.")?;
         }
 
         // 管理データを消す
         for _ in 0..bytes_per_pixel {
-            input.remove(0);
+            input_.remove(0);
         }
 
         // paddingの長さを読み込む
-        let padding = u128::from_be_bytes((&input[0..16]).try_into()?);
+        let padding = u128::from_be_bytes((&input_[0..16]).try_into()?);
         let padding = usize::try_from(padding)?;
 
         // paddingの長さの情報を消す
         for _ in 0..16 {
-            input.remove(0);
+            input_.remove(0);
         }
         // paddingを消す
         for _ in 0..padding {
-            input.pop();
+            input_.pop();
         }
 
-        input.shrink_to_fit();
-        let result = Bin::new_raw(input);
+        input_.shrink_to_fit();
+        let result = Bin::new_raw(input_);
         Ok(result)
     }
 }
