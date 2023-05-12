@@ -13,20 +13,20 @@ impl Img {
 }
 
 impl From<Img> for Vec<u8> {
-    fn from(mut val: Img) -> Self {
-        let mut result = Vec::new();
-        std::mem::swap(&mut val.0, &mut result);
-
-        result
+    fn from(val: Img) -> Self {
+        val.0
     }
 }
 
-impl TryFrom<&Img> for Bin {
+impl TryFrom<Img> for Bin {
     type Error = Box<dyn std::error::Error>;
 
-    fn try_from(value: &Img) -> Result<Self, Self::Error> {
+    fn try_from(input: Img) -> Result<Self, Self::Error> {
         // 管理データを読み込む
-        let mut img = image::load_from_memory(&value.0)?;
+        let mut input = input.0;
+        let mut img = image::load_from_memory(&input)?;
+        input.clear();
+
         let colorfmt = img.get_pixel(0, 0);
         let bit_depth = colorfmt[0] >> 3;
         let color_type = colorfmt[0] & 0b00000111;
@@ -43,23 +43,28 @@ impl TryFrom<&Img> for Bin {
             (16, 6) => img.into_rgba16().into(),
             _ => panic!("Unsupported color format."),
         };
-        let mut input = Vec::new();
         let mut cursor = Cursor::new(&mut input);
         img.write_to(&mut cursor, image::ImageOutputFormat::Png)?;
 
+        input.shrink_to_fit();
+        drop(img);
+
+        // png内のデータを読み込む
         let decoder = png::Decoder::new(input.as_slice());
         let mut reader = decoder.read_info()?;
         let mut input = vec![0; reader.output_buffer_size()];
         reader.next_frame(&mut input)?;
 
+        let bytes_per_pixel = reader.info().bytes_per_pixel();
+        drop(reader);
+
         // データの長さをチェックする
-        let info = reader.info();
-        if input.len() <= info.bytes_per_pixel() + 16 {
+        if input.len() <= bytes_per_pixel + 16 {
             Err("Too short data.")?;
         }
 
         // 管理データを消す
-        for _ in 0..(info.bytes_per_pixel()) {
+        for _ in 0..bytes_per_pixel {
             input.remove(0);
         }
 
@@ -76,6 +81,7 @@ impl TryFrom<&Img> for Bin {
             input.pop();
         }
 
+        input.shrink_to_fit();
         let result = Bin::new_raw(input);
         Ok(result)
     }

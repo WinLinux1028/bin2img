@@ -64,18 +64,21 @@ impl TryFrom<&Bin> for Vec<u8> {
     }
 }
 
-impl TryFrom<&Bin> for Img {
+impl TryFrom<Bin> for Img {
     type Error = Box<dyn std::error::Error>;
 
-    fn try_from(value: &Bin) -> Result<Self, Self::Error> {
+    fn try_from(input: Bin) -> Result<Self, Self::Error> {
+        let bit_depth = input.bit_depth_internal();
+        let color_type = input.color_type_internal();
+
         // 1ピクセル何バイトか計算する
-        let bits_per_pixel = value.bit_depth_internal() * value.colors_per_pixel();
+        let bits_per_pixel = bit_depth * input.colors_per_pixel();
         if bits_per_pixel % 8 != 0 {
             panic!("The number of bits per pixel must be a multiple of 8.")
         }
         let bytes_per_pixel = u128::from(bits_per_pixel / 8);
 
-        let input_len = u128::try_from(value.0.len())?;
+        let input_len = u128::try_from(input.0.len())?;
         let output_len = input_len + 16; // paddingの長さの情報(16バイト)を追加
 
         // 最後の1ピクセル分のデータが足りないときに追加する必要のあるデータ量を計算
@@ -111,22 +114,31 @@ impl TryFrom<&Bin> for Img {
         // 出力フォーマットの設定
         let output = WritableArcRwLockVec::new();
         let mut encoder = png::Encoder::new(output.clone(), output_side, output_side);
-        encoder.set_depth(value.1);
-        encoder.set_color(value.2);
+        encoder.set_depth(input.1);
+        encoder.set_color(input.2);
         encoder.set_compression(png::Compression::Fast);
         encoder.set_filter(png::FilterType::NoFilter);
         encoder.validate_sequence(true);
         let mut writer = encoder.write_header()?.into_stream_writer()?;
 
         // データを書き出し
-        writer.write_all(&vec![0; bytes_per_pixel])?; // 管理データ用の1ピクセル
+        // 管理データ用の1ピクセル
+        for _ in 0..bytes_per_pixel {
+            writer.write_all(&[0])?;
+        }
+
         writer.write_all(&padding.to_be_bytes())?; // paddingの大きさ
-        io::copy(&mut value.0.as_slice(), &mut writer)?; // データ本体
+        io::copy(&mut input.0.as_slice(), &mut writer)?; // データ本体
+        drop(input);
 
         // paddingの部分はランダムなデータで埋める
-        let mut tmp = vec![0; padding.try_into()?];
-        rand::rngs::OsRng.try_fill_bytes(&mut tmp)?;
-        writer.write_all(&tmp)?;
+        let mut rng = rand::thread_rng();
+        for _ in 0..padding.try_into()? {
+            let mut tmp = [0];
+            rng.fill_bytes(&mut tmp);
+            writer.write_all(&tmp)?;
+        }
+        drop(rng);
         writer.finish()?;
 
         // 管理データ(元のカラーフォーマットを復元するための情報)を書き込む
@@ -135,13 +147,14 @@ impl TryFrom<&Bin> for Img {
         lock.clear();
 
         let mut colorfmt = image::Rgba([0, 0, 0, 0xFF]);
-        colorfmt[0] = (value.bit_depth_internal() << 3) | value.color_type_internal();
+        colorfmt[0] = (bit_depth << 3) | color_type;
         colorfmt[1] = colorfmt[0];
         colorfmt[2] = colorfmt[0];
         img.put_pixel(0, 0, colorfmt);
 
         let mut cursor = Cursor::new(&mut *lock);
         img.write_to(&mut cursor, image::ImageOutputFormat::Png)?;
+        drop(img);
 
         // 結果を得る
         let mut result = Vec::new();

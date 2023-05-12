@@ -78,7 +78,7 @@ fn bin_to_img(options: Options) {
     input.1 = options.bit_depth;
     input.2 = options.color_type;
 
-    let result: Img = (&input).try_into().unwrap();
+    let result = Img::try_from(input).unwrap();
 
     output.write_all(&result).unwrap();
 }
@@ -102,7 +102,7 @@ fn img_to_bin(options: Options) {
     let mut output = File::create(file_o).unwrap();
 
     let input = Img::new(input_data);
-    let result: Bin = (&input).try_into().unwrap();
+    let result = Bin::try_from(input).unwrap();
     let result: Vec<u8> = (&result).try_into().unwrap();
 
     output.write_all(&result).unwrap();
