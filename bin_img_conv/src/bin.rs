@@ -1,4 +1,4 @@
-use crate::{buffer::WritableArcRwLockVec, Img};
+use crate::{buffer::WritableRcRefCellVec, Img};
 
 use image::GenericImage;
 use num_traits::ToPrimitive;
@@ -112,7 +112,7 @@ impl TryFrom<Bin> for Img {
         let output_side = u32::try_from(output_side_)?;
 
         // 出力フォーマットの設定
-        let output = WritableArcRwLockVec::new();
+        let output = WritableRcRefCellVec::new();
         let mut encoder = png::Encoder::new(output.clone(), output_side, output_side);
         encoder.set_depth(input.1);
         encoder.set_color(input.2);
