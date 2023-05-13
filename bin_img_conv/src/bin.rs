@@ -24,31 +24,31 @@ impl Bin {
         Self(bin, BitDepth::Sixteen, ColorType::Rgba)
     }
 
-    fn bit_depth_internal(&self) -> u8 {
+    fn bit_depth_internal(&self) -> Result<u8, Box<dyn std::error::Error>> {
         match self.1 {
-            BitDepth::Eight => 8,
-            BitDepth::Sixteen => 16,
-            _ => panic!("Unsupported bit depth."),
+            BitDepth::Eight => Ok(8),
+            BitDepth::Sixteen => Ok(16),
+            _ => Err("Unsupported bit depth.".into()),
         }
     }
 
-    fn colors_per_pixel(&self) -> u8 {
+    fn colors_per_pixel(&self) -> Result<u8, Box<dyn std::error::Error>> {
         match self.2 {
-            ColorType::Grayscale => 1,
-            ColorType::GrayscaleAlpha => 2,
-            ColorType::Rgb => 3,
-            ColorType::Rgba => 4,
-            _ => panic!("Unsupported color type."),
+            ColorType::Grayscale => Ok(1),
+            ColorType::GrayscaleAlpha => Ok(2),
+            ColorType::Rgb => Ok(3),
+            ColorType::Rgba => Ok(4),
+            _ => Err("Unsupported color type.".into()),
         }
     }
 
-    fn color_type_internal(&self) -> u8 {
+    fn color_type_internal(&self) -> Result<u8, Box<dyn std::error::Error>> {
         match self.2 {
-            ColorType::Grayscale => 0,
-            ColorType::GrayscaleAlpha => 4,
-            ColorType::Rgb => 2,
-            ColorType::Rgba => 6,
-            _ => panic!("Unsupported color type."),
+            ColorType::Grayscale => Ok(0),
+            ColorType::GrayscaleAlpha => Ok(4),
+            ColorType::Rgb => Ok(2),
+            ColorType::Rgba => Ok(6),
+            _ => Err("Unsupported color type.".into()),
         }
     }
 }
@@ -68,13 +68,13 @@ impl TryFrom<Bin> for Img {
     type Error = Box<dyn std::error::Error>;
 
     fn try_from(input: Bin) -> Result<Self, Self::Error> {
-        let bit_depth = input.bit_depth_internal();
-        let color_type = input.color_type_internal();
+        let bit_depth = input.bit_depth_internal()?;
+        let color_type = input.color_type_internal()?;
 
         // 1ピクセル何バイトか計算する
-        let bits_per_pixel = bit_depth * input.colors_per_pixel();
+        let bits_per_pixel = bit_depth * input.colors_per_pixel()?;
         if bits_per_pixel % 8 != 0 {
-            panic!("The number of bits per pixel must be a multiple of 8.")
+            return Err("The number of bits per pixel must be a multiple of 8.".into());
         }
         let bytes_per_pixel = u128::from(bits_per_pixel / 8);
 
@@ -104,7 +104,7 @@ impl TryFrom<Bin> for Img {
             .ceil()
             .to_u128()
             .unwrap();
-        let output_pixels = output_side_.checked_pow(2).unwrap();
+        let output_pixels = output_side_.checked_pow(2).ok_or("Too big file.")?;
         padding += (output_pixels - output_pixels_min) * bytes_per_pixel; // 正方形にするために追加する必要のあるデータ量を計算
 
         // 型変換
@@ -142,7 +142,7 @@ impl TryFrom<Bin> for Img {
         writer.finish()?;
 
         // 管理データ(元のカラーフォーマットを復元するための情報)を書き込む
-        let mut lock = output.0.write().unwrap();
+        let mut lock = output.0.borrow_mut();
         let mut img = image::load_from_memory(&lock)?;
         lock.clear();
 

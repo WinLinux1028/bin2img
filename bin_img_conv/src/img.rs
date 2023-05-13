@@ -41,7 +41,7 @@ impl TryFrom<Img> for Bin {
             (16, 2) => img.into_rgb16().into(),
             (16, 4) => img.into_luma_alpha16().into(),
             (16, 6) => img.into_rgba16().into(),
-            _ => panic!("Unsupported color format."),
+            _ => return Err("Unsupported color format.".into()),
         };
         let mut cursor = Cursor::new(&mut input);
         img.write_to(&mut cursor, image::ImageOutputFormat::Png)?;
@@ -61,7 +61,7 @@ impl TryFrom<Img> for Bin {
 
         // データの長さをチェックする
         if input_.len() <= bytes_per_pixel + 16 {
-            Err("Too short data.")?;
+            return Err("Too short data.".into());
         }
 
         // 管理データを消す
