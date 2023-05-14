@@ -5,13 +5,12 @@ use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 extern "C" {
-    #[wasm_bindgen(js_namespace = console)]
-    pub fn log(s: &str);
+    pub fn alert(s: &str);
 }
 
 fn init() {
     std::panic::set_hook(Box::new(|e| {
-        log(&e.to_string());
+        alert(&e.to_string());
     }));
 }
 
