@@ -1,16 +1,17 @@
-use bin_img_conv::{Bin, BitDepth, ColorType, Img};
+use std::io::BufReader;
+
+use bin_img_conv::{Bin, BitDepth, ColorType, Img, LowMemoryReadableVec};
 
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 pub fn bin_to_img(input: Vec<u8>, bit_depth: u8, color_type: u8) -> Vec<u8> {
-    let mut input_ = Bin::new(&mut input.as_slice()).unwrap();
-    drop(input);
+    let mut input = Bin::new(&mut BufReader::new(LowMemoryReadableVec::from(input))).unwrap();
 
-    input_.1 = BitDepth::from_u8(bit_depth).unwrap();
-    input_.2 = ColorType::from_u8(color_type).unwrap();
+    input.1 = BitDepth::from_u8(bit_depth).unwrap();
+    input.2 = ColorType::from_u8(color_type).unwrap();
 
-    let output = Img::try_from(input_).unwrap();
+    let output = Img::try_from(input).unwrap();
 
     output.into()
 }
