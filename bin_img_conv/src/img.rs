@@ -1,7 +1,7 @@
 use crate::Bin;
 
 use image::GenericImageView;
-use std::ops::Deref;
+use std::{io::Cursor, ops::Deref};
 
 #[derive(Clone)]
 pub struct Img(Vec<u8>);
@@ -23,9 +23,10 @@ impl TryFrom<Img> for Bin {
 
     fn try_from(input: Img) -> Result<Self, Self::Error> {
         // 管理データを読み込む
-        let mut input = input.0;
-        let mut img = image::load_from_memory(&input)?;
-        input.clear();
+        let cursor = Cursor::new(input.0);
+        let mut img = image::io::Reader::new(cursor);
+        img.no_limits();
+        let mut img = img.with_guessed_format()?.decode()?;
 
         let colorfmt = img.get_pixel(0, 0);
         let bit_depth = colorfmt[0] >> 3;
@@ -48,7 +49,7 @@ impl TryFrom<Img> for Bin {
         let color_type = img.color();
         let bytes_per_pixel = usize::from(color_type.bytes_per_pixel());
         let colors_per_pixel = usize::from(color_type.channel_count());
-        input = img.into_bytes();
+        let mut input = img.into_bytes();
 
         // バイトエンディアンを変換する
         if bytes_per_pixel / colors_per_pixel == 2 {
