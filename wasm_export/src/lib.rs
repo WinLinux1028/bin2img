@@ -20,5 +20,5 @@ pub fn img_to_bin(input: Vec<u8>) -> Vec<u8> {
     let input = Img::new(input);
     let output = Bin::try_from(input).unwrap();
 
-    (&output).try_into().unwrap()
+    output.try_into().unwrap()
 }

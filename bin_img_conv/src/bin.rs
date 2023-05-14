@@ -1,10 +1,9 @@
 use crate::{buffer::WritableRcRefCellVec, Img};
 
-use image::GenericImage;
 use num_traits::ToPrimitive;
 use png::{BitDepth, ColorType};
 use rand::RngCore;
-use std::io::{self, BufRead, Cursor, Write};
+use std::io::{self, BufRead, Write};
 
 #[derive(Clone)]
 pub struct Bin(Vec<u8>, pub BitDepth, pub ColorType);
@@ -42,6 +41,16 @@ impl Bin {
         }
     }
 
+    fn colors_per_pixel_except_alpha(&self) -> Result<u8, Box<dyn std::error::Error>> {
+        match self.2 {
+            ColorType::Grayscale => Ok(1),
+            ColorType::GrayscaleAlpha => Ok(1),
+            ColorType::Rgb => Ok(3),
+            ColorType::Rgba => Ok(3),
+            _ => Err("Unsupported color type.".into()),
+        }
+    }
+
     fn color_type_internal(&self) -> Result<u8, Box<dyn std::error::Error>> {
         match self.2 {
             ColorType::Grayscale => Ok(0),
@@ -70,9 +79,11 @@ impl TryFrom<Bin> for Img {
     fn try_from(input: Bin) -> Result<Self, Self::Error> {
         let bit_depth = input.bit_depth_internal()?;
         let color_type = input.color_type_internal()?;
+        let colors_per_pixel_except_alpha = input.colors_per_pixel_except_alpha()?;
+        let colors_per_pixel = input.colors_per_pixel()?;
 
         // 1ピクセル何バイトか計算する
-        let bits_per_pixel = bit_depth * input.colors_per_pixel()?;
+        let bits_per_pixel = bit_depth * colors_per_pixel;
         if bits_per_pixel % 8 != 0 {
             return Err("The number of bits per pixel must be a multiple of 8.".into());
         }
@@ -108,7 +119,6 @@ impl TryFrom<Bin> for Img {
         padding += (output_pixels - output_pixels_min) * bytes_per_pixel; // 正方形にするために追加する必要のあるデータ量を計算
 
         // 型変換
-        let bytes_per_pixel = usize::try_from(bytes_per_pixel)?;
         let output_side = u32::try_from(output_side_)?;
 
         // 出力フォーマットの設定
@@ -122,9 +132,22 @@ impl TryFrom<Bin> for Img {
         let mut writer = encoder.write_header()?.into_stream_writer()?;
 
         // データを書き出し
-        // 管理データ用の1ピクセル
-        for _ in 0..bytes_per_pixel {
-            writer.write_all(&[0])?;
+        // 管理データ(元のカラーフォーマットを復元するための情報)
+        let colorfmt = (bit_depth << 3) | color_type;
+        let colorfmt = if bit_depth == 16 {
+            let colorfmt = u16::from(colorfmt) * 257;
+            colorfmt.to_be_bytes()
+        } else {
+            [colorfmt, 0]
+        };
+        let bytes_per_color = usize::from(bit_depth / 8);
+        for _ in 0..colors_per_pixel_except_alpha {
+            writer.write_all(&colorfmt[0..bytes_per_color])?;
+        }
+        if colors_per_pixel != colors_per_pixel_except_alpha {
+            for _ in 0..bytes_per_color {
+                writer.write_all(&[0xFF])?;
+            }
         }
 
         writer.write_all(&padding.to_be_bytes())?; // paddingの大きさ
@@ -141,22 +164,8 @@ impl TryFrom<Bin> for Img {
         drop(rng);
         writer.finish()?;
 
-        // 管理データ(元のカラーフォーマットを復元するための情報)を書き込む
-        let mut lock = output.0.borrow_mut();
-        let mut img = image::load_from_memory(&lock)?;
-        lock.clear();
-
-        let mut colorfmt = image::Rgba([0, 0, 0, 0xFF]);
-        colorfmt[0] = (bit_depth << 3) | color_type;
-        colorfmt[1] = colorfmt[0];
-        colorfmt[2] = colorfmt[0];
-        img.put_pixel(0, 0, colorfmt);
-
-        let mut cursor = Cursor::new(&mut *lock);
-        img.write_to(&mut cursor, image::ImageOutputFormat::Png)?;
-        drop(img);
-
         // 結果を得る
+        let mut lock = output.0.borrow_mut();
         let mut result = Vec::new();
         std::mem::swap(&mut *lock, &mut result);
 
