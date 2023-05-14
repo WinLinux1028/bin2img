@@ -10,7 +10,8 @@ extern "C" {
 
 fn init() {
     std::panic::set_hook(Box::new(|e| {
-        alert(&e.to_string());
+        let trace = backtrace::Backtrace::new();
+        alert(&format!("{}\n{:?}", e, trace));
     }));
 }
 
