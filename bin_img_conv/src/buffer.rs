@@ -1,8 +1,32 @@
 use std::{
     cell::RefCell,
-    io::{self, Write},
+    cmp::min,
+    io::{self, Read, Write},
     rc::Rc,
 };
+
+pub struct LowMemoryReadableVec(Vec<u8>);
+
+impl From<Vec<u8>> for LowMemoryReadableVec {
+    fn from(mut input: Vec<u8>) -> Self {
+        input.reverse();
+        LowMemoryReadableVec(input)
+    }
+}
+
+impl Read for LowMemoryReadableVec {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        let result = min(self.0.len(), buf.len());
+        for i in 0..result {
+            unsafe {
+                *buf.get_unchecked_mut(i) = self.0.pop().unwrap_unchecked();
+            }
+        }
+        self.0.shrink_to_fit();
+
+        Ok(result)
+    }
+}
 
 #[derive(Clone)]
 pub struct WritableRcRefCellVec(pub Rc<RefCell<Vec<u8>>>);

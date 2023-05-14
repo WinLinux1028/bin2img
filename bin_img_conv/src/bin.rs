@@ -1,4 +1,7 @@
-use crate::{buffer::WritableRcRefCellVec, Img};
+use crate::{
+    buffer::{LowMemoryReadableVec, WritableRcRefCellVec},
+    Img,
+};
 
 use num_traits::ToPrimitive;
 use png::{BitDepth, ColorType};
@@ -151,8 +154,7 @@ impl TryFrom<Bin> for Img {
         }
 
         writer.write_all(&padding.to_be_bytes())?; // paddingの大きさ
-        io::copy(&mut input.0.as_slice(), &mut writer)?; // データ本体
-        drop(input);
+        io::copy(&mut LowMemoryReadableVec::from(input.0), &mut writer)?; // データ本体
 
         // paddingの部分はランダムなデータで埋める
         let mut rng = rand::thread_rng();
