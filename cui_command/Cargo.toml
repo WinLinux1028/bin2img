@@ -7,4 +7,4 @@ edition = "2021"
 
 [dependencies]
 bin_img_conv = { path = "../bin_img_conv" }
-mimalloc = "0.1"
+mimalloc = { version = "0.1", default-features = false }
