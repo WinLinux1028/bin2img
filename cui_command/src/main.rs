@@ -103,7 +103,7 @@ fn img_to_bin(options: Options) {
 
     let input = Img::new(input_data);
     let result = Bin::try_from(input).unwrap();
-    let result: Vec<u8> = (&result).try_into().unwrap();
+    let result: Vec<u8> = result.try_into().unwrap();
 
     output.write_all(&result).unwrap();
 }

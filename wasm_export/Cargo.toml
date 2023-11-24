@@ -10,4 +10,3 @@ crate-type = ["cdylib"]
 
 [dependencies]
 bin_img_conv = { path = "../bin_img_conv" }
-wasm-bindgen = "0.2"

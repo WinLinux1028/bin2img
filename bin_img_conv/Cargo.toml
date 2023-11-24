@@ -11,4 +11,4 @@ image = "0.24"
 rand = "0.8"
 dashu = "0.3"
 num-traits = "0.2"
-lzma-rs = "0.3"
+liblzma = { version = "0.2", features = ["static"] }

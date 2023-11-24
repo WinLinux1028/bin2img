@@ -3,10 +3,11 @@ use crate::{
     Img,
 };
 
+use liblzma::read::{XzDecoder, XzEncoder};
 use num_traits::ToPrimitive;
 use png::{BitDepth, ColorType};
 use rand::RngCore;
-use std::io::{self, BufRead, Write};
+use std::io::{self, Read, Write};
 
 #[derive(Clone)]
 pub struct Bin(Vec<u8>, pub BitDepth, pub ColorType);
@@ -14,10 +15,11 @@ pub struct Bin(Vec<u8>, pub BitDepth, pub ColorType);
 impl Bin {
     pub fn new<R>(bin: &mut R) -> Result<Self, Box<dyn std::error::Error>>
     where
-        R: BufRead,
+        R: Read,
     {
+        let mut encoder = XzEncoder::new(bin, 9);
         let mut inner = Vec::new();
-        lzma_rs::lzma_compress(bin, &mut inner)?;
+        encoder.read_to_end(&mut inner)?;
 
         Ok(Self::new_raw(inner))
     }
@@ -65,12 +67,14 @@ impl Bin {
     }
 }
 
-impl TryFrom<&Bin> for Vec<u8> {
+impl TryFrom<Bin> for Vec<u8> {
     type Error = Box<dyn std::error::Error>;
 
-    fn try_from(value: &Bin) -> Result<Self, Self::Error> {
+    fn try_from(value: Bin) -> Result<Self, Self::Error> {
+        let bin = LowMemoryReadableVec::from(value.0);
+        let mut encoder = XzDecoder::new_multi_decoder(bin);
         let mut result = Vec::new();
-        lzma_rs::lzma_decompress(&mut value.0.as_slice(), &mut result)?;
+        encoder.read_to_end(&mut result)?;
 
         Ok(result)
     }
