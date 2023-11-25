@@ -1,2 +1,4 @@
 /target
 /Cargo.lock
+/wasm_export.js
+/wasm_export.wasm

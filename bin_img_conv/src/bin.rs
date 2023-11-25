@@ -80,7 +80,7 @@ impl TryFrom<Bin> for Vec<u8> {
     }
 }
 
-impl TryFrom<Bin> for Img {
+impl TryFrom<Bin> for Img<Vec<u8>> {
     type Error = Box<dyn std::error::Error>;
 
     fn try_from(input: Bin) -> Result<Self, Self::Error> {

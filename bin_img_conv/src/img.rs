@@ -4,24 +4,24 @@ use image::GenericImageView;
 use std::{io::Cursor, ops::Deref};
 
 #[derive(Clone)]
-pub struct Img(Vec<u8>);
+pub struct Img<T: AsRef<[u8]>>(T);
 
-impl Img {
-    pub fn new(img: Vec<u8>) -> Self {
+impl<T: AsRef<[u8]>> Img<T> {
+    pub fn new(img: T) -> Self {
         Self(img)
     }
 }
 
-impl From<Img> for Vec<u8> {
-    fn from(val: Img) -> Self {
+impl From<Img<Vec<u8>>> for Vec<u8> {
+    fn from(val: Img<Vec<u8>>) -> Self {
         val.0
     }
 }
 
-impl TryFrom<Img> for Bin {
+impl<T: AsRef<[u8]>> TryFrom<Img<T>> for Bin {
     type Error = Box<dyn std::error::Error>;
 
-    fn try_from(input: Img) -> Result<Self, Self::Error> {
+    fn try_from(input: Img<T>) -> Result<Self, Self::Error> {
         // 管理データを読み込む
         let cursor = Cursor::new(input.0);
         let mut img = image::io::Reader::new(cursor);
@@ -94,8 +94,8 @@ impl TryFrom<Img> for Bin {
     }
 }
 
-impl Deref for Img {
-    type Target = Vec<u8>;
+impl<T: AsRef<[u8]>> Deref for Img<T> {
+    type Target = T;
 
     fn deref(&self) -> &Self::Target {
         &self.0

@@ -2,7 +2,7 @@
 rustflags = [
     "-Clink-arg=-owasm_export.js",
     "-Clink-arg=-sNO_EXIT_RUNTIME=1",
-    "-Clink-arg=-sEXPORTED_FUNCTIONS=['_malloc', '_free', '_bin_to_img', '_img_to_bin', '_result_len', '_result_buf', '_result_free']",
+    "-Clink-arg=-sEXPORTED_FUNCTIONS=['_bin_to_img', '_img_to_bin', '_buf_alloc', '_buf_resize', '_buf_inner', '_buf_len', '_buf_free']",
     "-Clink-arg=-sALLOW_MEMORY_GROWTH=1",
     "-Clink-arg=-sMAXIMUM_MEMORY=4GB",
     "-Clink-arg=-sEXPORTED_RUNTIME_METHODS=['ccall', 'cwrap']",
