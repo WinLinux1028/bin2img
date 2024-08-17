@@ -16,7 +16,7 @@ pub fn bin_to_img(input: *mut Vec<u8>, bit_depth: u8, color_type: u8) -> *mut Ve
     let result = Img::try_from(input).unwrap().into();
     unsafe {
         let output = buf_alloc();
-        output.write(result);
+        output.replace(result);
 
         output
     }
@@ -29,7 +29,7 @@ pub fn img_to_bin(input: *mut Vec<u8>) -> *mut Vec<u8> {
     let result = Bin::try_from(input).unwrap().try_into().unwrap();
     unsafe {
         let output = buf_alloc();
-        output.write(result);
+        output.replace(result);
 
         output
     }
@@ -39,7 +39,7 @@ pub fn img_to_bin(input: *mut Vec<u8>) -> *mut Vec<u8> {
 pub fn buf_alloc() -> *mut Vec<u8> {
     unsafe {
         let buf = malloc(size_of::<Vec<u8>>()) as *mut Vec<u8>;
-        buf.write(Vec::with_capacity(1));
+        buf.write(Vec::new());
         buf
     }
 }
@@ -48,7 +48,7 @@ pub fn buf_alloc() -> *mut Vec<u8> {
 pub fn buf_resize(src: *mut Vec<u8>, new_len: usize) {
     unsafe {
         (*src).resize(new_len, 0);
-        (*src).shrink_to(1);
+        (*src).shrink_to_fit();
     }
 }
 

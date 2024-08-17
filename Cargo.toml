@@ -1,7 +1,3 @@
 [workspace]
-
-members = [
-    "bin_img_conv",
-    "cui_command",
-    "wasm_export",
-]
+resolver = "2"
+members = ["bin_img_conv", "cui_command", "wasm_export"]

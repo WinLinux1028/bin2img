@@ -24,7 +24,7 @@ impl<T: AsRef<[u8]>> TryFrom<Img<T>> for Bin {
     fn try_from(input: Img<T>) -> Result<Self, Self::Error> {
         // 管理データを読み込む
         let cursor = Cursor::new(input.0);
-        let mut img = image::io::Reader::new(cursor);
+        let mut img = image::ImageReader::new(cursor);
         img.no_limits();
         let mut img = img.with_guessed_format()?.decode()?;
 

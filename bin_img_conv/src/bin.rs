@@ -3,6 +3,7 @@ use crate::{
     Img,
 };
 
+use dashu::base::SquareRoot;
 use liblzma::read::{XzDecoder, XzEncoder};
 use num_traits::ToPrimitive;
 use png::{BitDepth, ColorType};
@@ -115,11 +116,10 @@ impl TryFrom<Bin> for Img<Vec<u8>> {
 
         // 画像を正方形にしたときの1辺の長さとピクセル数を計算
         let output_side_ = dashu::Real::from(output_pixels_min)
+            .with_rounding::<dashu::float::round::mode::Up>()
             .with_precision(256)
             .value()
-            .with_rounding::<dashu::float::round::mode::HalfEven>()
             .sqrt()
-            .ceil()
             .to_u128()
             .unwrap();
         let output_pixels = output_side_.checked_pow(2).ok_or("Too big file.")?;

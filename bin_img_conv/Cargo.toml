@@ -7,8 +7,8 @@ edition = "2021"
 
 [dependencies]
 png = "0.17"
-image = "0.24"
+image = "0.25"
 rand = "0.8"
-dashu = "0.3"
+dashu = { version = "0.4", features = ["num-traits"] }
 num-traits = "0.2"
-liblzma = { version = "0.2", features = ["static"] }
+liblzma = { version = "0.3", features = ["static"] }

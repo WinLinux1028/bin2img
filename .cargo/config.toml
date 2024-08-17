@@ -1,0 +1,9 @@
+[target.wasm32-unknown-emscripten]
+rustflags = [
+    "-Clink-arg=--no-entry",
+    "-Clink-arg=-sASSERTIONS=0",
+    "-Clink-arg=-sSTACK_SIZE=8388608",    # 8MiB, Linuxのデフォルト
+    "-Clink-arg=-sMAXIMUM_MEMORY=4GB",
+    "-Clink-arg=-sALLOW_MEMORY_GROWTH=1",
+    "-Clink-arg=-sENVIRONMENT=web",
+]

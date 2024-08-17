@@ -1,9 +1,0 @@
-[target.wasm32-unknown-emscripten]
-rustflags = [
-    "-Clink-arg=-owasm_export.js",
-    "-Clink-arg=-sNO_EXIT_RUNTIME=1",
-    "-Clink-arg=-sEXPORTED_FUNCTIONS=['_bin_to_img', '_img_to_bin', '_buf_alloc', '_buf_resize', '_buf_inner', '_buf_len', '_buf_free']",
-    "-Clink-arg=-sALLOW_MEMORY_GROWTH=1",
-    "-Clink-arg=-sMAXIMUM_MEMORY=4GB",
-    "-Clink-arg=-sEXPORTED_RUNTIME_METHODS=['ccall', 'cwrap']",
-]
